@@ -1,6 +1,9 @@
 beanstalkc
 ==========
 
+*Patched for use with python3.7 and python2.7*
+Python3.7 tests hangup whitout error, will fix these tests when have more time, pull requests welcome
+
 beanstalkc is a simple beanstalkd client library for Python. [beanstalkd][] is
 a fast, distributed, in-memory workqueue service.
 

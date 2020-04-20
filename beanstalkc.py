@@ -29,19 +29,39 @@ DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 11300
 DEFAULT_PRIORITY = 2 ** 31
 DEFAULT_TTR = 120
-DEFAULT_TUBE_NAME = 'default'
 
 
-class BeanstalkcException(Exception): pass
-class UnexpectedResponse(BeanstalkcException): pass
-class CommandFailed(BeanstalkcException): pass
-class DeadlineSoon(BeanstalkcException): pass
+class BeanstalkcException(Exception):
+    pass
+
+
+class UnexpectedResponse(BeanstalkcException):
+    pass
+
+
+class CommandFailed(BeanstalkcException):
+    pass
+
+
+class DeadlineSoon(BeanstalkcException):
+    pass
+
 
 class SocketError(BeanstalkcException):
     @staticmethod
     def wrap(wrapped_function, *args, **kwargs):
         try:
+            if sys.version_info[0] >= 3:
+                if wrapped_function.__name__ == "connect":
+                    enc_args = tuple([tuple([x.encode('utf-8') if isinstance(x, str) else x for x in tup]) for tup in args])
+                else:
+                    enc_args = tuple([x.encode('utf-8') if isinstance(x, str) else x for x in args])
+                return wrapped_function(*enc_args, **kwargs)
             return wrapped_function(*args, **kwargs)
+        except TypeError as err:
+            logging.error("SocketError TypeError")
+            logging.error(err)
+            raise SocketError(err)
         except socket.error:
             err = sys.exc_info()[1]
             raise SocketError(err)
@@ -52,7 +72,7 @@ class Connection(object):
                  connect_timeout=socket.getdefaulttimeout()):
         if parse_yaml is True:
             try:
-                parse_yaml = __import__('yaml').load
+                parse_yaml = __import__('yaml').safe_load
             except ImportError:
                 logging.error('Failed to load PyYAML, will not parse YAML')
                 parse_yaml = False
@@ -107,6 +127,9 @@ class Connection(object):
         if not line:
             raise SocketError()
         response = line.split()
+        if sys.version_info[0] >= 3:
+            dec_res = list([x.decode() if isinstance(x, bytes) else x for x in response])
+            return dec_res[0], dec_res[1:]
         return response[0], response[1:]
 
     def _read_body(self, size):
@@ -122,6 +145,8 @@ class Connection(object):
     def _interact_job(self, command, expected_ok, expected_err, reserved=True):
         jid, size = self._interact(command, expected_ok, expected_err)
         body = self._read_body(int(size))
+        if sys.version_info[0] >= 3:
+            return Job(self, int(jid), body.decode(), reserved)
         return Job(self, int(jid), body, reserved)
 
     def _interact_yaml(self, command, expected_ok, expected_err=[]):
