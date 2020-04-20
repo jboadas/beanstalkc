@@ -4,7 +4,7 @@ beanstalkc
 Patched for use with python3.7 and python2.7
 ============================================
 
-Python3.7 tests hangs whitout error.
+Python3.7 tests hangs without error.
 
 Will fix these tests when have more time.
 
